@@ -8,7 +8,7 @@ export default function Footer() {
           Copyright &copy; 2021 |{" "}
           <a
             className="text-light"
-            href="https://github.com/sprkhar"
+            href="https://github.com/askvish"
             target="_blank"
             rel="noreferrer"
           >
