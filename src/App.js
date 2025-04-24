@@ -15,17 +15,20 @@ function App() {
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
   const [currentMeals, setCurrentMeals] = useState([]);
-  const [nClick, setNClick] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const mealsPerPage = 3;
+  const [init, setInit] = useState(0);
 
   const indexOfLastMeal = currentPage * mealsPerPage;
   const indexOfFirstMeal = indexOfLastMeal - mealsPerPage;
 
   // Change page
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const paginate = (pageNumber) => {
+    scrollTop();
+    setCurrentPage(pageNumber);
+  };
 
-  const getRecipes = async (start, end) => {
+  const getRecipes = async () => {
     let url = `https://www.themealdb.com/api/json/v1/1/search.php`;
     let result = await Axios.get(url, {
       params: {
@@ -33,30 +36,24 @@ function App() {
       },
     });
 
-    if (result.data.meals) {
-      setRecipes(result.data.meals);
-      setCurrentPage(1); // reset to first page
-      setNClick(nClick + 1);
-    } else {
-      setRecipes([]);
-      setCurrentPage(1);
-      setNClick(nClick + 1);
-    }
+    setRecipes(result.data.meals || []);
+    setInit(1);
+    setCurrentPage(1);
   };
 
   // This will recompute currentMeals when recipes or currentPage changes
   useEffect(() => {
     setCurrentMeals(recipes.slice(indexOfFirstMeal, indexOfLastMeal));
-  }, [recipes, currentPage]);
+  }, [recipes, currentPage, indexOfFirstMeal, indexOfLastMeal]);
 
   const onChange = (e) => {
-    nClick > 0 && setNClick(0); // reset nClick if user types in the input
+    setInit(0);
     setQuery(e.target.value);
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    await getRecipes(0, 3);
+    await getRecipes();
   };
 
   return (
@@ -84,7 +81,8 @@ function App() {
           ? currentMeals.map((recipe) => (
               <RecipesList key={recipe.idMeal} recipe={recipe} />
             ))
-          : nClick > 0 && (
+          : init !== 0 &&
+            recipes.length === 0 && (
               <p
                 className="text-center"
                 style={{
@@ -116,7 +114,7 @@ function App() {
                 className="btn btn-dark"
                 style={{ margin: "5px" }}
                 key={i + 1}
-                onClick={() => scrollTop() && paginate(i + 1)}
+                onClick={() => paginate(i + 1)}
               >
                 {i + 1}
               </button>
@@ -125,7 +123,7 @@ function App() {
         </div>
       )}
 
-      {nClick === 0 && <p>Search your recipes!</p>}
+      {init === 0 && <p>Search your recipes!</p>}
 
       <Footer />
     </div>

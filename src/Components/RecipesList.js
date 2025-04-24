@@ -11,7 +11,7 @@ export default function Item({ recipe }) {
       />
       <div className="card-body">
         <h5 className="card-title">
-          Dish Name: <u>{recipe.strMeal}</u>
+          <span>{recipe.strMeal}</span>
           <a href={recipe.strYoutube} target="_blank" rel="noreferrer">
             <i className="fa fa-share-square"></i>
           </a>
