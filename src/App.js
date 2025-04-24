@@ -1,6 +1,6 @@
 import "./App.css";
 import Axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import RecipesList from "./Components/RecipesList";
 import Footer from "./Components/Footer";
 
@@ -14,43 +14,59 @@ const scrollTop = () =>
 function App() {
   const [query, setQuery] = useState("");
   const [recipes, setRecipes] = useState([]);
+  const [currentMeals, setCurrentMeals] = useState([]);
   const [nClick, setNClick] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const mealsPerPage = 3;
 
-  var APP_ID = "da01fbea";
-  var APP_KEY = "f81b60a41cd16f86d6af43edd6886e65";
-  var start = 0;
+  const indexOfLastMeal = currentPage * mealsPerPage;
+  const indexOfFirstMeal = indexOfLastMeal - mealsPerPage;
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const getRecipes = async (start, end) => {
-    var url = `https://api.edamam.com/search?q=${query}&app_id=${APP_ID}&app_key=${APP_KEY}&from=${start}&to=${end}`;
-    var result = await Axios.get(url);
-    setRecipes(result.data.hits);
+    let url = `https://www.themealdb.com/api/json/v1/1/search.php`;
+    let result = await Axios.get(url, {
+      params: {
+        s: query,
+      },
+    });
+
+    if (result.data.meals) {
+      setRecipes(result.data.meals);
+      setCurrentPage(1); // reset to first page
+      setNClick(nClick + 1);
+    } else {
+      setRecipes([]);
+      setCurrentPage(1);
+      setNClick(nClick + 1);
+    }
   };
 
+  // This will recompute currentMeals when recipes or currentPage changes
+  useEffect(() => {
+    setCurrentMeals(recipes.slice(indexOfFirstMeal, indexOfLastMeal));
+  }, [recipes, currentPage]);
+
   const onChange = (e) => {
+    nClick > 0 && setNClick(0); // reset nClick if user types in the input
     setQuery(e.target.value);
   };
 
-  const onSumbit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     await getRecipes(0, 3);
-    setNClick(nClick + 1);
-  };
-
-  const onClick = () => {
-    scrollTop();
-    setNClick(nClick + 1);
-    start += 3 * nClick;
-    getRecipes(start, start + 3);
   };
 
   return (
     <div className="app">
       <div className="searchBox">
         <h1 className="display-1">
-          <span class="material-icons icon md-72">fastfood</span>
+          <span className="material-icons icon md-72">fastfood</span>
           <b>Food Recipes</b>
         </h1>
-        <form className="input-group w-50 mx-auto" onSubmit={onSumbit}>
+        <form className="input-group w-50 mx-auto" onSubmit={onSubmit}>
           <input
             type="text"
             className="form-control"
@@ -64,20 +80,52 @@ function App() {
       </div>
       <hr />
       <div className="searchAppend">
-        {recipes.map((recipe) => {
-          return <RecipesList key={Math.random() * 100} recipe={recipe} />;
-        })}
+        {currentMeals.length > 0
+          ? currentMeals.map((recipe) => (
+              <RecipesList key={recipe.idMeal} recipe={recipe} />
+            ))
+          : nClick > 0 && (
+              <p
+                className="text-center"
+                style={{
+                  backgroundColor: "white",
+                  height: "50px",
+                  borderRadius: "10px",
+                  margin: "20px",
+                }}
+              >
+                <span
+                  style={{
+                    padding: "20px",
+                    fontSize: "20px",
+                    fontWeight: "bold",
+                    color: "red",
+                  }}
+                >
+                  No recipes found for "{query}"
+                </span>
+              </p>
+            )}
       </div>
 
-      {nClick === 0 ? (
-        <p>Search your recipes!</p>
-      ) : (
-        <div>
-          <button id="more" className="btn btn-dark" onClick={onClick}>
-            More Results
-          </button>
+      {recipes.length > mealsPerPage && (
+        <div className="text-center" style={{ margin: "20px" }}>
+          {Array.from({ length: Math.ceil(recipes.length / mealsPerPage) }).map(
+            (_, i) => (
+              <button
+                className="btn btn-dark"
+                style={{ margin: "5px" }}
+                key={i + 1}
+                onClick={() => scrollTop() && paginate(i + 1)}
+              >
+                {i + 1}
+              </button>
+            )
+          )}
         </div>
       )}
+
+      {nClick === 0 && <p>Search your recipes!</p>}
 
       <Footer />
     </div>
